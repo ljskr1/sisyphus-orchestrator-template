@@ -54,7 +54,7 @@ if [ -f "$DIST_CLI_PATH" ]; then
     echo -e "  Created backup: ${DIST_CLI_PATH}.bak"
     
     # Run sed replacement
-    node -e '
+    bun -e '
       const fs = require("fs");
       const path = "'"$DIST_CLI_PATH"'";
       let content = fs.readFileSync(path, "utf8");

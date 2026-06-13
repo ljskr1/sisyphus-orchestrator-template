@@ -6,8 +6,8 @@
 You ←→ Gemini (Memory + Context) ←→ Sisyphus (Executor) ←→ Your Code
 ```
 
-- **Gemini**: Remembers conversation, reads files, creates plans with context
-- **Sisyphus**: Stateless executor, runs locally (free)
+- **Gemini (Brain)**: Remembers conversation, reads files, creates plans with context, orchestrates the workflow.
+- **Sisyphus - ultraworker (sisypus ulw)**: Stateless local executor, runs locally on the free `opencode/mimo-v2.5-free` model to maximize token savings. Required for all code modification steps.
 
 ## How Context Flows
 
@@ -29,10 +29,10 @@ You ←→ Gemini (Memory + Context) ←→ Sisyphus (Executor) ←→ Your Code
                        │
                        ▼
 ┌─────────────────────────────────────────────────────────┐
-│  Sisyphus (CLI)                                         │
+│  Sisyphus - ultraworker (CLI)                           │
 │  - Fresh session each time                              │
 │  - Gets context ONLY from plan                          │
-│  - Executes and returns output                          │
+│  - Executes on the free model (saves tokens)            │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -47,8 +47,8 @@ You ←→ Gemini (Memory + Context) ←→ Sisyphus (Executor) ←→ Your Code
 1. You tell Gemini what you want
 2. Gemini reads relevant files to understand context
 3. Gemini creates a SHORT plan (10 lines max) WITH context section
-4. Gemini runs: `bun oh-my-opencode.js run --agent Sisyphus "Execute this plan: [plan]"`
-5. Sisyphus executes the plan locally (free)
+4. Gemini runs: `bun oh-my-opencode.js run --agent Sisyphus "Execute this plan: [plan]"` (resolving to `Sisyphus - ultraworker`)
+5. Sisyphus - ultraworker executes the plan locally using the free model `opencode/mimo-v2.5-free` (maximizing token savings)
 6. Gemini reads modified files to verify
 7. You can ask follow-up questions (Gemini remembers everything)
 
@@ -86,6 +86,7 @@ You ←→ Gemini (Memory + Context) ←→ Sisyphus (Executor) ←→ Your Code
 ## Files
 
 - `.cursorrules` - Planning rules with context passing
+- `gemini.md` - Rules for the Gemini planner to enforce ultraworker delegation and save tokens
 - `planning-template.md` - Quick reference for plan format
 - `context-workflow.md` - Detailed context flow explanation
 - `setup.sh` - Environment verification (optional)

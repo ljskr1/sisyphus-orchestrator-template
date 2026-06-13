@@ -2,10 +2,11 @@
 
 ## Identity
 
-**Agent:** Sisyphus (Orchestrator)
+**Agent:** Sisyphus - ultraworker (`sisypus ulw`)
 **Repository:** https://github.com/code-yeongyu/oh-my-openagent
-**Model:** `opencode/mimo-v2.5-free`
-**Mode:** Primary orchestrator with delegation capabilities
+**Model:** `opencode/mimo-v2.5-free` (mandatory free model for saving tokens)
+**Mode:** Primary orchestrator and executor with delegation capabilities.
+**Token Saving & Looping Protocol:** The high-level orchestrator (the Brain / Gemini) must delegate execution tasks to Sisyphus - ultraworker to conserve rate limits and tokens. Since there are **no rate limits** for opencode and Sisyphus, if a task needs to loop overnight, you must continue running and iterating until it is successfully completed.
 **Temperature:** 0.1
 **Max Tokens:** 64000
 **Thinking:** Enabled (budgetTokens: 32000)
@@ -39,14 +40,17 @@
 
 | Agent | Type | Model | Fallback Chain | Purpose |
 |-------|------|-------|----------------|---------|
-| **Sisyphus** | Orchestrator | claude-opus-4-6 | k2p5 → kimi-k2.5 → gpt-5.4 → glm-5 | Main coordinator |
-| **explore** | Contextual grep | github-copilot/grok-code-fast-1 | - | Internal codebase search |
-| **librarian** | External search | google/gemini-3-flash | - | Docs, OSS, API research |
-| **oracle** | Consultant | openai/gpt-5.4 (high) | - | Architecture, debugging |
-| **metis** | Pre-planner | - | - | Ambiguity detection |
-| **momus** | Plan reviewer | - | - | Plan validation |
-| **atlas** | Todo orchestrator | - | - | Task execution |
-| **Sisyphus-Junior** | Executor | claude-sonnet-4-6 | user-configurable | Category-spawned workers |
+| **Sisyphus - ultraworker** (`sisypus ulw`) | Orchestrator & Executor | `opencode/mimo-v2.5-free` | - | Main coordinator, intent classification, and task executor. The Brain delegates tasks here to save tokens. |
+| **Hephaestus** | Executor | `opencode/mimo-v2.5-free` | - | Code generation, file manipulation, direct implementation |
+| **Oracle** | Consultant | `opencode/mimo-v2.5-free` | - | High-IQ reasoning, architecture decisions, debugging |
+| **Librarian** | External Search | `opencode/mimo-v2.5-free` | - | Documentation, OSS research, API reference lookup |
+| **Explore** | Contextual Grep | `opencode/mimo-v2.5-free` | - | Internal codebase search, pattern discovery |
+| **Multimodal-Looker** | Media Analysis | `opencode/mimo-v2.5-free` | - | Image/PDF analysis, visual content extraction |
+| **Prometheus** | Orchestrator | `opencode/mimo-v2.5-free` | - | Multi-step workflow coordination |
+| **Metis** | Pre-Planner | `opencode/mimo-v2.5-free` | - | Ambiguity detection, requirement analysis |
+| **Momus** | Plan Reviewer | `opencode/mimo-v2.5-free` | - | Plan validation, completeness verification |
+| **Atlas** | Todo Orchestrator | `opencode/mimo-v2.5-free` | - | Task tracking, progress management |
+| **Sisyphus-Junior** | Category Worker | `opencode/mimo-v2.5-free` | - | Category-specific task execution |
 
 ## Category System
 
@@ -276,18 +280,46 @@ const sessionContinuation = {
   "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-openagent.schema.json",
   "agents": {
     "sisyphus": {
-      "model": "anthropic/claude-opus-4-6",
+      "model": "opencode/mimo-v2.5-free",
       "variant": "max",
       "thinking": { "type": "enabled", "budgetTokens": 32000 }
     },
-    "librarian": { "model": "google/gemini-3-flash" },
-    "explore": { "model": "github-copilot/grok-code-fast-1" },
-    "oracle": { "model": "openai/gpt-5.4", "variant": "high" }
+    "hephaestus": {
+      "model": "opencode/mimo-v2.5-free"
+    },
+    "oracle": {
+      "model": "opencode/mimo-v2.5-free",
+      "variant": "high"
+    },
+    "librarian": {
+      "model": "opencode/mimo-v2.5-free"
+    },
+    "explore": {
+      "model": "opencode/mimo-v2.5-free"
+    },
+    "multimodal-looker": {
+      "model": "opencode/mimo-v2.5-free"
+    },
+    "prometheus": {
+      "model": "opencode/mimo-v2.5-free"
+    },
+    "metis": {
+      "model": "opencode/mimo-v2.5-free"
+    },
+    "momus": {
+      "model": "opencode/mimo-v2.5-free"
+    },
+    "atlas": {
+      "model": "opencode/mimo-v2.5-free"
+    },
+    "sisyphus-junior": {
+      "model": "opencode/mimo-v2.5-free"
+    }
   },
   "categories": {
-    "visual-engineering": { "model": "google/gemini-3.1-pro", "variant": "high" },
-    "quick": { "model": "openai/gpt-5.4-mini" },
-    "deep": { "model": "anthropic/claude-opus-4-6", "variant": "max" }
+    "visual-engineering": { "model": "opencode/mimo-v2.5-free", "variant": "high" },
+    "quick": { "model": "opencode/mimo-v2.5-free" },
+    "deep": { "model": "opencode/mimo-v2.5-free", "variant": "max" }
   }
 }
 ```

@@ -8,7 +8,7 @@
 - Need to pass context between them
 
 ### The Solution
-Gemini acts as the **context manager** and passes relevant info to Sisyphus via the CLI prompt.
+Gemini acts as the **context manager** (Brain) and passes relevant info to the local executor `Sisyphus - ultraworker` (`sisypus ulw`) via the CLI prompt, using the free model to save tokens.
 
 ---
 
@@ -71,14 +71,15 @@ bun oh-my-opencode.js run --agent Sisyphus "Execute this plan:
 - Use existing Tailwind classes"
 ```
 
-### Step 5: Sisyphus Executes
+### Step 5: Sisyphus - ultraworker Executes
+- Sisyphus - ultraworker runs on the free `opencode/mimo-v2.5-free` model (saving tokens)
 - Reads the files
 - Makes the changes
 - Runs verification
 - Returns output
 
 ### Step 6: Gemini Verifies and Continues
-Gemini reads the modified files to:
+Gemini (the Brain) reads the modified files to:
 - Confirm changes look correct
 - Answer follow-up questions
 - Maintain conversation context
@@ -99,8 +100,8 @@ Gemini reads the modified files to:
 - Related code context
 
 ### Gemini SHOULD NOT Include:
-- Full file contents (Sisyphus will read them)
-- Implementation details (Sisyphus figures those out)
+- Full file contents (Sisyphus - ultraworker will read them)
+- Implementation details (Sisyphus - ultraworker figures those out)
 - Multiple options (pick one)
 
 ---
@@ -131,7 +132,7 @@ Gemini:
    ### Constraints
    - handleSubmit function already exists at line 45
 
-4. Delegates to Sisyphus
+4. Delegates to Sisyphus - ultraworker
 5. Reads result, confirms fix
 ```
 
@@ -147,11 +148,11 @@ Gemini:
    - Available search components
    - Styling constraints
 
-4. Delegates to Sisyphus
+4. Delegates to Sisyphus - ultraworker
 5. Verifies result
 6. User asks: "Can you make it search as you type?"
 7. Gemini adds context: "Search bar already added, needs debounce"
-8. Delegates follow-up to Sisyphus
+8. Delegates follow-up to Sisyphus - ultraworker
 ```
 
 ### Example 3: Multi-Task Context
@@ -161,10 +162,10 @@ User: "Refactor the auth module and add OAuth"
 Gemini:
 1. Reads auth module
 2. Creates Plan 1: Refactor auth
-3. Delegates to Sisyphus
+3. Delegates to Sisyphus - ultraworker
 4. Verifies refactor
 5. Creates Plan 2: Add OAuth (with context from refactor)
-6. Delegates to Sisyphus
+6. Delegates to Sisyphus - ultraworker
 7. Verifies OAuth addition
 ```
 

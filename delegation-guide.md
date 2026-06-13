@@ -9,7 +9,7 @@ This document explains the architecture, CLI commands, and setup required to use
 To maximize speed, reliability, and token savings, the development workflow is split:
 
 * **The Brain (Orchestrator AI):** High-level planning, requirement analysis, edge-case detection, and task decomposition. Does not edit files directly.
-* **The Executor (Local Sisyphus Agent):** Executes edits, runs local CLI commands, validates compile/build errors, checks tests, and runs LSP tools. Runs locally via the free `opencode/mimo-v2.5-free` model.
+* **The Executor (Local Sisyphus - ultraworker / sisypus ulw):** Executes edits, runs local CLI commands, validates compile/build errors, checks tests, and runs LSP tools. Runs locally via the free `opencode/mimo-v2.5-free` model. To save tokens and run efficiently, the Brain (Gemini) MUST delegate execution steps to Sisyphus - ultraworker. Since there are **no rate limits** for opencode and Sisyphus, if a task needs to loop overnight, you must continue running and iterating until it is successfully completed.
 
 ```
 ┌─────────────────────────────────┐
@@ -124,13 +124,18 @@ To configure Sisyphus or other agents to use the free model, the configuration i
 
 ## 5. How to Delegate a Task (For the Orchestrator AI)
 
-When the user asks you to implement a feature, fix a bug, or perform coding work, do **NOT** modify files directly. Instead, follow these steps:
+When the user asks you to implement a feature, fix a bug, or perform coding work, do **NOT** modify files directly. Instead, follow these steps to delegate to the local `Sisyphus - ultraworker` (`sisypus ulw`) using the free model:
 
 1. **Write an Implementation Plan:** Map out what files need to change, what the widget/logic should do, and list the step-by-step goals.
 2. **Obtain Approval:** Get user confirmation on the plan.
-3. **Formulate a Prompt for Sisyphus:** Draft an exhaustive prompt describing:
+3. **Formulate a Prompt for Sisyphus - ultraworker:** Draft an exhaustive prompt describing:
    - The task and atomic goals.
    - Expected outcomes and styling rules (e.g., Tailwind CSS via CDN, glassmorphism card, etc.).
    - Paths to the target files.
-4. **Run the CLI Command:** Execute the `oh-my-opencode.js` runner in the workspace root with the constructed prompt.
+4. **Run the CLI Command:** Execute the `oh-my-opencode.js` runner in the workspace root targeting the ultraworker agent:
+   ```bash
+   /Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --agent Sisyphus "YOUR_DETAILED_PROMPT"
+   ```
 5. **Verify:** Check Sisyphus's output, view the files Sisyphus modified to confirm they match the plan, and mark tasks as complete.
+
+By routing the execution through Sisyphus - ultraworker running on `opencode/mimo-v2.5-free`, we ensure massive token savings for the high-level Brain.

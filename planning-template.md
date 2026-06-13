@@ -85,3 +85,5 @@ Copy this template and fill in the blanks. Keep it SHORT.
 - **Total: ~75 tokens per plan**
 
 Compare to detailed analysis: ~2000-5000 tokens
+
+*Note: Always route execution steps through the local `Sisyphus - ultraworker` running on the free model (`opencode/mimo-v2.5-free`) to save tokens and costs.*
