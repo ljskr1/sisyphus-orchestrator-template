@@ -86,4 +86,4 @@ Copy this template and fill in the blanks. Keep it SHORT.
 
 Compare to detailed analysis: ~2000-5000 tokens
 
-*Note: Always route execution steps through either Path A (Plain OpenCode) or Path B (Sisyphus - ultraworker) using the free model (`opencode/mimo-v2.5-free`) to optimize speed, tokens, and execution quality.*
+*Note: Always route execution steps through Path A (Plain OpenCode), Path B (Sisyphus - ultraworker), or Path C (MCP Bridge) using the free model (`opencode/mimo-v2.5-free`) to optimize speed, tokens, and execution quality.*

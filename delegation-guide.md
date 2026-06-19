@@ -38,7 +38,7 @@ To maximize speed, reliability, and token savings, the development workflow is s
 
 ## 2. CLI Location and Invocation
 
-The local execution environment supports two main delegation paths:
+The local execution environment supports three main delegation paths:
 
 ### PATH A: Simple Tasks (formatting, comments, docs, or simple single-line edits)
 * **First run** (runs task on default OpenCode with the free model):
@@ -59,6 +59,39 @@ The local execution environment supports two main delegation paths:
   ```bash
   /Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --session-id ses_abc123 "Your follow-up prompt here"
   ```
+
+### PATH C: Native MCP Bridge (IDE-integrated tasks, mid-complexity)
+* **First run** (uses `opencode_run` or `opencode_session_create` MCP tools with the free model):
+  ```json
+  // Via opencode_run (single-shot)
+  {
+    "tool": "opencode_run",
+    "arguments": {
+      "prompt": "Your detailed prompt here",
+      "model": "opencode/mimo-v2.5-free"
+    }
+  }
+
+  // Via opencode_session_create (for multi-turn sessions)
+  {
+    "tool": "opencode_session_create",
+    "arguments": {
+      "prompt": "Your detailed prompt here",
+      "model": "opencode/mimo-v2.5-free"
+    }
+  }
+  ```
+* **Follow-up runs** (resumes the same session using `opencode_session_prompt` with the session ID):
+  ```json
+  {
+    "tool": "opencode_session_prompt",
+    "arguments": {
+      "session_id": "ses_abc123",
+      "prompt": "Your follow-up prompt here"
+    }
+  }
+  ```
+* **Setup:** Run `setup-mcp-bridge.sh` to automate bridge installation, config copying, and starting the daemon.
 
 ---
 
@@ -160,6 +193,37 @@ When the user asks you to implement a feature, fix a bug, or perform coding work
        ```bash
        /Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --session-id <session_id> "YOUR_FOLLOW_UP_PROMPT"
        ```
+   * **For Path C (Native MCP Bridge):**
+     * First run:
+       ```json
+       // Via opencode_run (single-shot)
+       {
+         "tool": "opencode_run",
+         "arguments": {
+           "prompt": "YOUR_PROMPT",
+           "model": "opencode/mimo-v2.5-free"
+         }
+       }
+
+       // Via opencode_session_create (for multi-turn sessions)
+       {
+         "tool": "opencode_session_create",
+         "arguments": {
+           "prompt": "YOUR_PROMPT",
+           "model": "opencode/mimo-v2.5-free"
+         }
+       }
+       ```
+     * Follow-up run:
+       ```json
+       {
+         "tool": "opencode_session_prompt",
+         "arguments": {
+           "session_id": "ses_abc123",
+           "prompt": "YOUR_FOLLOW_UP_PROMPT"
+         }
+       }
+       ```
 4. **Verify:** Check the output, view the modified files to confirm, extract/save the session ID from the output for future turns, and mark tasks as complete.
 
 By routing the execution through Sisyphus - ultraworker running on `opencode/mimo-v2.5-free` and resuming sessions, we ensure massive token savings for the high-level Brain.
@@ -182,3 +246,9 @@ If a Path A (Simple Task) grows and requires multi-file logic, cancel the Path A
 
 ### 6.4 Command Hangs or Terminals Freezing
 If a background execution command does not return, use the `manage_task` tool with action `kill` in the IDE, inspect git status via terminal, restore clean state, and retry the delegation.
+
+### 6.5 MCP Server Offline (Path C)
+If Path C (Native MCP Bridge) commands fail because the MCP server is not running:
+- **Start the MCP server:** Run `opencode serve --port 4096` in your terminal.
+- **Fallback:** If the MCP server cannot be started, fall back to Path A (CLI) or Path B (Sisyphus CLI) which do not require the MCP daemon.
+- **Setup:** Run `setup-mcp-bridge.sh` to automate the bridge installation, config copying, and starting the daemon.

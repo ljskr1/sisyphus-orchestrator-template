@@ -47,41 +47,24 @@ Gemini reads relevant files to understand:
 - Use existing Tailwind classes
 ```
 
-### Step 4: Gemini Delegates with Full Context (using --json)
-Gemini invokes the CLI using `--json` to run the task and retrieve a structured output containing the `sessionId`:
-```bash
-/Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --agent Sisyphus --json "Execute this plan:
+### Step 4: Gemini Delegates with Full Context (CLI or MCP)
+Depending on your configuration:
+* **Path A/B (CLI):** Gemini outputs a shell command (using `--json` for Path B to get structured logs):
+  ```bash
+  /Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --agent Sisyphus --json "Execute this plan: [details]"
+  ```
+* **Path C (MCP Bridge):** Gemini calls the native MCP tool `opencode_run` directly with the plan prompt.
 
-## Task: Fix navbar mobile layout
-
-### Context
-- Current navbar uses flexbox, breaks at 768px
-- File: src/components/Navbar.tsx (lines 45-67)
-- Must maintain desktop layout
-
-### Files to Modify
-- src/components/Navbar.tsx - add responsive breakpoints
-
-### Steps
-1. Add media query for 768px
-2. Stack nav items vertically on mobile
-3. Verify: npm run build
-
-### Constraints
-- Keep desktop layout unchanged
-- Use existing Tailwind classes"
-```
-
-### Step 5: Sisyphus - ultraworker Executes
-- Sisyphus - ultraworker runs on the free `opencode/mimo-v2.5-free` model (saving tokens)
-- Reads the files, makes the changes, and runs verification
-- Returns a JSON response containing the execution status and `sessionId` (e.g. `ses_abc123`)
+### Step 5: Sisyphus/OpenCode Executes
+- Runs the task locally on the free `opencode/mimo-v2.5-free` model.
+- Reads/searches the codebase files and makes the required edits.
+- Runs verification tests or build commands and outputs the result (including the `sessionId` / session ID).
 
 ### Step 6: Gemini Verifies and Captures Session
 Gemini (the Brain) reads the modified files to:
-- Confirm changes look correct
-- Extract the `sessionId` from the output JSON to reuse in follow-up turns via `--session-id <session_id>`
-- Maintain conversation context without repeating files Sisyphus already knows
+- Confirm changes look correct.
+- Extract the session ID from the output/response.
+- Maintain conversation context without repeating files the session already knows by resuming (using `-s`, `--session-id`, or `opencode_session_prompt` in future turns).
 
 ---
 
@@ -160,6 +143,21 @@ Gemini:
 9. Gemini verifies OAuth addition
 ```
 
+### Example 4: Native MCP Bridge (Path C)
+```
+User: "Create a simple card component in src/components/Card.tsx"
+
+Gemini:
+1. Brain plans creation of Card.tsx
+2. Brain calls MCP tool `opencode_run` with the plan prompt (using free model)
+3. User approves tool execution in the IDE pop-up
+4. OpenCode executes the card creation and returns a sessionId "ses_mcp_789"
+5. Gemini reads files to verify
+6. User asks follow-up: "Add hover scale animations to it"
+7. Gemini resumes the session by calling `opencode_session_prompt` with sessionId="ses_mcp_789" and the hover prompt.
+8. Gemini verifies and completes
+```
+
 ---
 
 ## Token Efficiency
@@ -168,6 +166,7 @@ Gemini:
 |----------|--------|-----------------|
 | Load everything | ~5000 | High but wasteful |
 | Relay only | ~50 | Low, no context |
-| **Smart Planning + Session ID** | ~100-250 | High, extremely efficient |
+| **Smart Planning + CLI Session ID (Path A/B)** | ~100-200 | High, extremely efficient (0 system prompt overhead) |
+| **Smart Planning + MCP Bridge (Path C)** | ~500-600 | High, efficient (adds ~420 tokens system prompt overhead) |
 
-The key: Gemini reads files SELECTIVELY, passes ONLY relevant context in the first plan using `--json`, and resumes using `--session-id` for subsequent turns to prevent Sisyphus from re-analyzing the codebase.
+The key: Gemini reads files SELECTIVELY, passes ONLY relevant context in the first plan, and resumes using the session ID for subsequent turns to prevent the executor from re-analyzing the codebase.

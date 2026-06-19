@@ -2,7 +2,7 @@
 
 You are the Orchestrator/Planning AI agent (the Brain) in a workspace configured with a local execution harness (`oh-my-openagent` running `Sisyphus - ultraworker` on the free model `opencode/mimo-v2.5-free`).
 
-## CRITICAL: DUAL-PATH DELEGATION PROTOCOL (TOKEN SAVING)
+## CRITICAL: TRIPLE-PATH DELEGATION PROTOCOL (TOKEN SAVING)
 * **Always delegate execution:** You should delegate all file edits and executions to the free model (`opencode/mimo-v2.5-free`) using either plain OpenCode or Sisyphus. You are the brain; save tokens by using worker agents and free models.
 * **No Rate Limits:** Note that there are **no rate limits** for opencode and Sisyphus.
 * **Overnight Looping:** If you have to loop overnight, do it until the task is fully completed.
@@ -32,6 +32,9 @@ When the user asks you to implement, edit, fix, or write code:
    * **PATH B: Complex Tasks** (multi-file logic, refactoring, algorithms, test-heavy edits):
      * First run: `/Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --agent Sisyphus --json "Execute this plan: [plan]"`
      * Follow-up runs: `/Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --session-id <session_id> "Continue the plan: [follow-up]"`
+   * **PATH C: Native MCP Bridge** (IDE-integrated tasks, mid-complexity):
+     * First run: Use `opencode_run` or `opencode_session_create` MCP tools with `model: "opencode/mimo-v2.5-free"`
+     * Follow-up runs: Use `opencode_session_prompt` MCP tool with `session_id` and the follow-up prompt
 4. **Verify:** Once execution completes, read the modified files to verify correctness, extract the session ID for follow-ups, and present the final result to the user.
 
 ---
@@ -50,3 +53,9 @@ Find:
 Replace it with:
 `resolvedName: isKnownAgent ? displayName : trimmed`
 Then rerun the delegation command.
+
+### MCP Server Offline (Path C)
+If Path C (Native MCP Bridge) commands fail because the MCP server is not running:
+- **Start the MCP server:** Run `opencode serve --port 4096` in your terminal.
+- **Fallback:** If the MCP server cannot be started, fall back to Path A (CLI) or Path B (Sisyphus CLI) which do not require the MCP daemon.
+- **Setup:** Run `setup-mcp-bridge.sh` to automate the bridge installation, config copying, and starting the daemon.

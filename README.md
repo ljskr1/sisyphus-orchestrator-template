@@ -3,12 +3,13 @@
 ## Architecture
 
 ```
-You ←→ Gemini (Memory/Context Planner) ←→ Plain OpenCode (Simple Path A) or Sisyphus (Complex Path B) ←→ Your Code
+You ←→ Gemini (Memory/Context Planner) ←→ Plain OpenCode (Path A) or Sisyphus (Path B) or Native MCP Bridge (Path C) ←→ Your Code
 ```
 
 - **Gemini (Brain)**: Remembers conversation, reads files, creates plans, and dynamically routes tasks based on complexity.
 - **Plain OpenCode (Path A)**: Handles formatting, comments, docs, or simple single-line edits using the free model `opencode/mimo-v2.5-free`.
 - **Sisyphus - ultraworker (Path B)**: Stateless local executor, handles complex tasks (multi-file logic, refactoring, algorithms) on the free model.
+- **Native MCP Bridge (Path C)**: IDE-integrated execution via native MCP tools (`opencode_run`, `opencode_session_create`, `opencode_session_prompt`), handles mid-complexity tasks directly in the IDE.
 
 ## How Context Flows
 
@@ -49,17 +50,19 @@ You ←→ Gemini (Memory/Context Planner) ←→ Plain OpenCode (Simple Path A)
 4. Gemini decides on the path:
    * **Path A (Simple):** Invokes plain `opencode run -m opencode/mimo-v2.5-free`. Resumes using `opencode run -s <session_id>`.
    * **Path B (Complex):** Invokes `oh-my-opencode.js run --agent Sisyphus --json`. Resumes using `--session-id <session_id>`.
+   * **Path C (MCP Bridge):** Invokes `opencode_run` or `opencode_session_create` MCP tools with `model: "opencode/mimo-v2.5-free"`. Resumes using `opencode_session_prompt` with `session_id`.
 5. The executor runs the plan locally using the free model (maximizing token savings).
 6. Gemini reads modified files to verify.
 7. You can ask follow-up questions (Gemini resumes the session ID to save tokens).
 
 ## Token Usage
 
-| Approach | Tokens per Task |
-|----------|-----------------|
-| Full analysis (old) | ~2000-5000 |
-| Relay only | ~50-100 |
-| **Smart Planning + Session ID** | ~100-200 |
+| Approach | Tokens per Task | Notes |
+|----------|-----------------|-------|
+| Full analysis (old) | ~2000-5000 | Brain analyzes everything |
+| Relay only | ~50-100 | Minimal delegation |
+| **Path A/B (CLI)** | ~100-200 | Most token-efficient; CLI runs directly without IDE tool definitions |
+| **Path C (MCP Bridge)** | ~500-600 | IDE tool definitions overhead (~420 tokens) adds to each task |
 
 ## Plan Format (with Context)
 
@@ -91,6 +94,8 @@ You ←→ Gemini (Memory/Context Planner) ←→ Plain OpenCode (Simple Path A)
 - `planning-template.md` - Quick reference for plan format
 - `context-workflow.md` - Detailed context flow explanation
 - `setup.sh` - Environment verification (optional)
+- `mcp-bridge-config.json` - MCP Bridge configuration for Path C
+- `setup-mcp-bridge.sh` - Automates bridge installation, config copying, and daemon startup
 
 ## Example Conversation
 

@@ -46,9 +46,9 @@ Read 1-2 key files to understand:
 
 ### 3. Delegate with Full Context
 
-The Brain (Gemini) dynamically routes the execution based on complexity:
+The Brain (Gemini) dynamically routes the execution based on complexity and environment configuration:
 
-#### PATH A: Simple Tasks (formatting, comments, docs, or trivial single-line edits)
+#### PATH A: Simple Tasks (formatting, comments, docs, or trivial single-line edits via CLI)
 * **First turn** (runs task on default OpenCode with the free model):
   ```bash
   opencode run -m opencode/mimo-v2.5-free "Execute this plan:
@@ -62,7 +62,7 @@ The Brain (Gemini) dynamically routes the execution based on complexity:
   [YOUR FOLLOW-UP PLAN]"
   ```
 
-#### PATH B: Complex Tasks (multi-file logic, refactoring, algorithms, or test-heavy edits)
+#### PATH B: Complex Tasks (multi-file logic, refactoring, algorithms, or test-heavy edits via CLI)
 * **First turn** (runs Sisyphus - ultraworker with `--json` to capture `sessionId`):
   ```bash
   /Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --agent Sisyphus --json "Execute this plan:
@@ -76,11 +76,17 @@ The Brain (Gemini) dynamically routes the execution based on complexity:
   [YOUR FOLLOW-UP PLAN]"
   ```
 
+#### PATH C: Native MCP Bridge (runs directly inside the IDE using native MCP tools)
+* **First turn** (creates session and runs execution):
+  Call the native MCP tool `opencode_run` or `opencode_session_create` (specifying model `opencode/mimo-v2.5-free`) with your plan prompt.
+* **Subsequent turns** (resumes session):
+  Call `opencode_session_prompt` with the captured `sessionId` to run delta instructions.
+
 ### 4. Verify Results
 After execution completes:
 - Read the modified files
 - Confirm changes look correct
-- Extract the `sessionId` or session ID from the output for future turns
+- Extract the `sessionId` or session ID from the output/response for future turns
 - Answer user's follow-up questions
 
 ## Context Rules
@@ -132,17 +138,25 @@ Then delegate and verify.
 ## Multi-Turn Context & Session Resumption
 
 When user asks follow-up questions:
-1. Extract the session ID from the previous run output.
+1. Extract the session ID from the previous run output/response.
 2. Formulate the delta prompt (no need to repeat file contexts the session already knows).
 3. Run the continuation command based on the active path:
-   * **For Path A (Plain OpenCode):** `opencode run -s <session_id> "Continue: [details]"`
-   * **For Path B (Sisyphus):** `/Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --session-id <session_id> "Continue: [details]"`
+   * **For Path A (Plain OpenCode CLI):** `opencode run -s <session_id> "Continue: [details]"`
+   * **For Path B (Sisyphus CLI):** `/Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --session-id <session_id> "Continue: [details]"`
+   * **For Path C (Native MCP Bridge):** Call `opencode_session_prompt` with `sessionId` and instructions.
 
 Example (Path B):
 ```
 User: "Can you make the button blue?"
 You: "Resuming session ses_abc123. Sisyphus already has the context of src/components/Login.tsx from the previous step. Running update..."
 [Run delegation with --session-id ses_abc123]
+```
+
+Example (Path C):
+```
+User: "Can you make the button blue?"
+You: "Resuming session ses_abc123. OpenCode already has the context of src/components/Login.tsx. Calling opencode_session_prompt..."
+[Call opencode_session_prompt tool with sessionId="ses_abc123" and prompt="Add styling to make the button blue"]
 ```
 
 ## Token Budget
@@ -156,13 +170,17 @@ You: "Resuming session ses_abc123. Sisyphus already has the context of src/compo
 ## Edge Cases & Error Recovery
 
 ### 1. Session Expiry or Loss
-* **Symptom:** CLI execution fails with `Session not found`, `Invalid session`, or an error indicating the session has terminated.
-* **Resolution:** Fall back immediately to the **First turn** workflow for the active path (A or B). Send a new CLI command without the `-s` or `--session-id` flag, containing the full accumulated context so far.
+* **Symptom:** CLI or MCP tool execution fails with `Session not found`, `Invalid session`, or an error indicating the session has terminated.
+* **Resolution:** Fall back immediately to the **First turn** workflow for the active path (A, B, or C). Start a new session without passing the session ID, containing the full accumulated context so far.
 
 ### 2. Task Complexity Escalation
 * **Symptom:** A task starts simple (Path A) but during subsequent turns turns out to require complex, multi-file changes or automated verification.
-* **Resolution:** Escalate the task to **Path B**. Create a new Sisyphus session (`--json`), sending a complete plan that captures the current code state and the remaining complex goals. Discard the old Path A session.
+* **Resolution:** Escalate the task to **Path B** (Sisyphus CLI) or configure/run with the full capability of Sisyphus via MCP. Create a new session, sending a complete plan that captures the current code state and the remaining complex goals. Discard the old session.
 
-### 3. CLI Hanging or Timeout
-* **Symptom:** Sisyphus/OpenCode CLI command hangs in the terminal or runs past reasonable completion time.
+### 3. MCP Server Offline (Path C)
+* **Symptom:** MCP tool calls fail with connection errors or timeout because the background server is offline.
+* **Resolution:** Fall back immediately to the CLI paths (Path A or Path B). Suggest running `opencode serve --port 4096` in the terminal to restart the background server.
+
+### 4. CLI Hanging or Timeout
+* **Symptom:** CLI command hangs in the terminal or runs past reasonable completion time.
 * **Resolution:** Proactively terminate the task in the IDE (`kill` command via `manage_task`), check git status for partial edits, restore clean state if needed, and retry the command.

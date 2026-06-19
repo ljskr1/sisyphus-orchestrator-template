@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "opencode": {
+      "command": "node",
+      "args": ["/Users/your-username/opencode-mcp/dist/index.js"],
+      "env": {
+        "OPENCODE_SERVER_URL": "http://localhost:4096",
+        "OPENCODE_DEFAULT_PROJECT": "/Users/your-username/your-project",
+        "OPENCODE_AUTO_START": "true",
+        "OPENCODE_TIMEOUT": "120000",
+        "OPENCODE_LOG_LEVEL": "info"
+      },
+      "disabledTools": [
+        "opencode_session_create",
+        "opencode_session_abort",
+        "opencode_model_configure",
+        "opencode_provider_list",
+        "opencode_config_update",
+        "opencode_skill_create",
+        "opencode_mcp_enable"
+      ]
+    }
+  }
+}
