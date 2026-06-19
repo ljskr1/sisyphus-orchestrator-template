@@ -112,9 +112,13 @@ if ! dry_run_skip "mkdir -p $ANTIGRAVITY_DIR && cp $SOURCE_CONFIG $MCP_CONFIG_PA
     cp "$SOURCE_CONFIG" "$MCP_CONFIG_PATH"
     echo "  Config copied to: $MCP_CONFIG_PATH"
 
+    if grep -q '/Users/your-username/your-project' "$MCP_CONFIG_PATH"; then
+        sed -i '' "s|/Users/your-username/your-project|$REPO_DIR|g" "$MCP_CONFIG_PATH"
+        echo "  Replaced placeholder project path with $REPO_DIR"
+    fi
     if grep -q '/Users/your-username/' "$MCP_CONFIG_PATH"; then
         sed -i '' "s|/Users/your-username/|$HOME/|g" "$MCP_CONFIG_PATH"
-        echo "  Replaced placeholder paths with $HOME/"
+        echo "  Replaced placeholder user paths with $HOME/"
     fi
 fi
 
