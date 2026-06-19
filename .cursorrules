@@ -45,16 +45,42 @@ Read 1-2 key files to understand:
 ```
 
 ### 3. Delegate with Full Context
-```bash
-/Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/node_modules/oh-my-opencode/bin/oh-my-opencode.js run --agent Sisyphus "Execute this plan:
 
-[YOUR PLAN HERE]"
-```
+The Brain (Gemini) dynamically routes the execution based on complexity:
+
+#### PATH A: Simple Tasks (formatting, comments, docs, or trivial single-line edits)
+* **First turn** (runs task on default OpenCode with the free model):
+  ```bash
+  opencode run -m opencode/mimo-v2.5-free "Execute this plan:
+
+  [YOUR PLAN HERE]"
+  ```
+* **Subsequent turns** (resumes the same plain session; plain `opencode` uses `-s` for session):
+  ```bash
+  opencode run -s <session_id> "Continue the plan:
+
+  [YOUR FOLLOW-UP PLAN]"
+  ```
+
+#### PATH B: Complex Tasks (multi-file logic, refactoring, algorithms, or test-heavy edits)
+* **First turn** (runs Sisyphus - ultraworker with `--json` to capture `sessionId`):
+  ```bash
+  /Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --agent Sisyphus --json "Execute this plan:
+
+  [YOUR PLAN HERE]"
+  ```
+* **Subsequent turns** (resumes the same Sisyphus session using `--session-id`):
+  ```bash
+  /Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --session-id <session_id> "Continue the plan:
+
+  [YOUR FOLLOW-UP PLAN]"
+  ```
 
 ### 4. Verify Results
-After Sisyphus completes:
+After execution completes:
 - Read the modified files
 - Confirm changes look correct
+- Extract the `sessionId` or session ID from the output for future turns
 - Answer user's follow-up questions
 
 ## Context Rules
@@ -103,23 +129,40 @@ You create:
 
 Then delegate and verify.
 
-## Multi-Turn Context
+## Multi-Turn Context & Session Resumption
 
 When user asks follow-up questions:
-1. Remember what Sisyphus did
-2. Add new context to plan
-3. Reference previous changes
+1. Extract the session ID from the previous run output.
+2. Formulate the delta prompt (no need to repeat file contexts the session already knows).
+3. Run the continuation command based on the active path:
+   * **For Path A (Plain OpenCode):** `opencode run -s <session_id> "Continue: [details]"`
+   * **For Path B (Sisyphus):** `/Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --session-id <session_id> "Continue: [details]"`
 
-Example:
+Example (Path B):
 ```
 User: "Can you make the button blue?"
-You: "Sisyphus just added the onClick handler. Now adding blue color."
-[Create new plan with context about previous change]
+You: "Resuming session ses_abc123. Sisyphus already has the context of src/components/Login.tsx from the previous step. Running update..."
+[Run delegation with --session-id ses_abc123]
 ```
 
 ## Token Budget
 
 - Context section: ~30-50 tokens
 - Plan: ~75 tokens
-- CLI invocation: ~50 tokens
-- **Total: ~150-200 tokens per task**
+- CLI invocation (first): ~50 tokens
+- CLI invocation (resume): ~30 tokens
+- **Total: ~100-200 tokens per task**
+
+## Edge Cases & Error Recovery
+
+### 1. Session Expiry or Loss
+* **Symptom:** CLI execution fails with `Session not found`, `Invalid session`, or an error indicating the session has terminated.
+* **Resolution:** Fall back immediately to the **First turn** workflow for the active path (A or B). Send a new CLI command without the `-s` or `--session-id` flag, containing the full accumulated context so far.
+
+### 2. Task Complexity Escalation
+* **Symptom:** A task starts simple (Path A) but during subsequent turns turns out to require complex, multi-file changes or automated verification.
+* **Resolution:** Escalate the task to **Path B**. Create a new Sisyphus session (`--json`), sending a complete plan that captures the current code state and the remaining complex goals. Discard the old Path A session.
+
+### 3. CLI Hanging or Timeout
+* **Symptom:** Sisyphus/OpenCode CLI command hangs in the terminal or runs past reasonable completion time.
+* **Resolution:** Proactively terminate the task in the IDE (`kill` command via `manage_task`), check git status for partial edits, restore clean state if needed, and retry the command.

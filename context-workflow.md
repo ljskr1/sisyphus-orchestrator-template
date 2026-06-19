@@ -47,9 +47,10 @@ Gemini reads relevant files to understand:
 - Use existing Tailwind classes
 ```
 
-### Step 4: Gemini Delegates with Full Context
+### Step 4: Gemini Delegates with Full Context (using --json)
+Gemini invokes the CLI using `--json` to run the task and retrieve a structured output containing the `sessionId`:
 ```bash
-bun oh-my-opencode.js run --agent Sisyphus "Execute this plan:
+/Users/rock/.bun/bin/bun /Users/rock/.cache/opencode/packages/oh-my-openagent@latest/node_modules/oh-my-openagent/bin/oh-my-opencode.js run --agent Sisyphus --json "Execute this plan:
 
 ## Task: Fix navbar mobile layout
 
@@ -73,16 +74,14 @@ bun oh-my-opencode.js run --agent Sisyphus "Execute this plan:
 
 ### Step 5: Sisyphus - ultraworker Executes
 - Sisyphus - ultraworker runs on the free `opencode/mimo-v2.5-free` model (saving tokens)
-- Reads the files
-- Makes the changes
-- Runs verification
-- Returns output
+- Reads the files, makes the changes, and runs verification
+- Returns a JSON response containing the execution status and `sessionId` (e.g. `ses_abc123`)
 
-### Step 6: Gemini Verifies and Continues
+### Step 6: Gemini Verifies and Captures Session
 Gemini (the Brain) reads the modified files to:
 - Confirm changes look correct
-- Answer follow-up questions
-- Maintain conversation context
+- Extract the `sessionId` from the output JSON to reuse in follow-up turns via `--session-id <session_id>`
+- Maintain conversation context without repeating files Sisyphus already knows
 
 ---
 
@@ -108,65 +107,57 @@ Gemini (the Brain) reads the modified files to:
 
 ## Example Conversations
 
-### Example 1: Bug Fix
+### Example 1: Bug Fix (Path A - Simple Task)
 ```
-User: "The login button doesn't work"
+User: "Fix the typos in the index.html page"
 
 Gemini:
-1. Reads src/components/Login.tsx
-2. Finds onClick handler is missing
-3. Creates plan:
-   ## Task: Fix login button handler
-   
-   ### Context
-   - Button rendered at line 23
-   - onClick={handleSubmit} missing
-   
-   ### Files to Modify
-   - src/components/Login.tsx - add onClick handler
-   
-   ### Steps
-   1. Add onClick={handleSubmit} to button
-   2. Verify: npm run build
-   
-   ### Constraints
-   - handleSubmit function already exists at line 45
-
-4. Delegates to Sisyphus - ultraworker
-5. Reads result, confirms fix
+1. Reads index.html
+2. Finds simple spelling typos (e.g. "comming soon" -> "coming soon")
+3. Brain decides this is a **Simple Task** (Path A)
+4. Creates a 5-line plan and delegates to plain `opencode` with Mimo-v2.5-free:
+   opencode run -m opencode/mimo-v2.5-free "Execute this plan: Fix spelling in index.html"
+5. Plain OpenCode runs and completes, returning session ID "ses_simple_123"
+6. Gemini reads files to verify
+7. User asks follow-up: "Change 'coming soon' to 'available soon'"
+8. Gemini resumes plain session:
+   opencode run -s ses_simple_123 "Continue: change 'coming soon' to 'available soon'"
+9. Gemini verifies and completes
 ```
 
-### Example 2: Feature Request
+### Example 2: Feature Request (with Session Resumption)
 ```
 User: "Add a search bar to the header"
 
 Gemini:
 1. Reads src/components/Header.tsx
 2. Checks existing search components
-3. Creates plan with context about:
-   - Current header structure
-   - Available search components
-   - Styling constraints
-
-4. Delegates to Sisyphus - ultraworker
-5. Verifies result
-6. User asks: "Can you make it search as you type?"
-7. Gemini adds context: "Search bar already added, needs debounce"
-8. Delegates follow-up to Sisyphus - ultraworker
+3. Creates plan
+4. Delegates to Sisyphus with --json:
+   /Users/rock/.bun/bin/bun .../oh-my-opencode.js run --agent Sisyphus --json "Execute this plan: Add search bar to header"
+5. Sisyphus executes and returns JSON with sessionId "ses_123"
+6. Gemini verifies changes
+7. User asks: "Can you make it search as you type?"
+8. Gemini resumes the session:
+   /Users/rock/.bun/bin/bun .../oh-my-opencode.js run --session-id ses_123 "Continue plan: add debounce to search input"
+9. Sisyphus executes inside the same session (saves tokens)
+10. Gemini verifies and completes
 ```
 
-### Example 3: Multi-Task Context
+### Example 3: Multi-Task Context (Sequential Resumption)
 ```
 User: "Refactor the auth module and add OAuth"
 
 Gemini:
 1. Reads auth module
 2. Creates Plan 1: Refactor auth
-3. Delegates to Sisyphus - ultraworker
-4. Verifies refactor
-5. Creates Plan 2: Add OAuth (with context from refactor)
-6. Delegates to Sisyphus - ultraworker
-7. Verifies OAuth addition
+3. Delegates to Sisyphus with --json
+4. Sisyphus executes refactor, returns sessionId "ses_456"
+5. Gemini verifies refactor
+6. Creates Plan 2: Add OAuth (runs on top of ses_456)
+7. Delegates using --session-id ses_456 "Continue plan: Add OAuth support"
+8. Sisyphus executes on the resumed session
+9. Gemini verifies OAuth addition
 ```
 
 ---
@@ -177,6 +168,6 @@ Gemini:
 |----------|--------|-----------------|
 | Load everything | ~5000 | High but wasteful |
 | Relay only | ~50 | Low, no context |
-| **Smart planning** | ~200-400 | High, efficient |
+| **Smart Planning + Session ID** | ~100-250 | High, extremely efficient |
 
-The key: Gemini reads files SELECTIVELY and passes ONLY relevant context.
+The key: Gemini reads files SELECTIVELY, passes ONLY relevant context in the first plan using `--json`, and resumes using `--session-id` for subsequent turns to prevent Sisyphus from re-analyzing the codebase.

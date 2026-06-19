@@ -1,13 +1,14 @@
-# Sisyphus Orchestrator Template (Gemini Planner + Sisyphus Executor)
+# Sisyphus Orchestrator Template (Gemini Planner + Sisyphus/OpenCode Executor)
 
 ## Architecture
 
 ```
-You ←→ Gemini (Memory + Context) ←→ Sisyphus (Executor) ←→ Your Code
+You ←→ Gemini (Memory/Context Planner) ←→ Plain OpenCode (Simple Path A) or Sisyphus (Complex Path B) ←→ Your Code
 ```
 
-- **Gemini (Brain)**: Remembers conversation, reads files, creates plans with context, orchestrates the workflow.
-- **Sisyphus - ultraworker (sisypus ulw)**: Stateless local executor, runs locally on the free `opencode/mimo-v2.5-free` model to maximize token savings. Required for all code modification steps.
+- **Gemini (Brain)**: Remembers conversation, reads files, creates plans, and dynamically routes tasks based on complexity.
+- **Plain OpenCode (Path A)**: Handles formatting, comments, docs, or simple single-line edits using the free model `opencode/mimo-v2.5-free`.
+- **Sisyphus - ultraworker (Path B)**: Stateless local executor, handles complex tasks (multi-file logic, refactoring, algorithms) on the free model.
 
 ## How Context Flows
 
@@ -16,41 +17,41 @@ You ←→ Gemini (Memory + Context) ←→ Sisyphus (Executor) ←→ Your Code
 │  Gemini (Antigravity IDE)                               │
 │  - Has FULL conversation memory                         │
 │  - Can read any file in workspace                       │
-│  - Remembers what you asked, what Sisyphus did          │
-│  - Passes context to Sisyphus via plan                  │
+│  - Decides on Path A (OpenCode) vs Path B (Sisyphus)    │
+│  - Passes context via plan                              │
 └──────────────────────┬──────────────────────────────────┘
                        │
         ┌──────────────┴──────────────┐
         │  Context flows via:         │
         │  1. Plan's Context section  │
-        │  2. Gemini reads files      │
-        │  3. Follow-up questions     │
+        │  2. Session resumption (-s/--session-id)        │
         └──────────────┬──────────────┘
                        │
                        ▼
 ┌─────────────────────────────────────────────────────────┐
-│  Sisyphus - ultraworker (CLI)                           │
-│  - Fresh session each time                              │
-│  - Gets context ONLY from plan                          │
+│  Local Executor (Plain OpenCode or Sisyphus)             │
+│  - Resumes session using session ID to save tokens       │
 │  - Executes on the free model (saves tokens)            │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ## Setup
 
-1. Copy `.cursorrules` to your project root
-2. Ensure oh-my-openagent is installed (run `setup.sh` to verify)
-3. Use Gemini Flash 3.5 as your IDE model
+1. Copy `.cursorrules` to your project root (or run `omo-init` in your terminal).
+2. Ensure oh-my-openagent is installed (run `setup.sh` to verify).
+3. Use Gemini Flash 3.5 as your IDE model.
 
 ## How It Works
 
-1. You tell Gemini what you want
-2. Gemini reads relevant files to understand context
-3. Gemini creates a SHORT plan (10 lines max) WITH context section
-4. Gemini runs: `bun oh-my-opencode.js run --agent Sisyphus "Execute this plan: [plan]"` (resolving to `Sisyphus - ultraworker`)
-5. Sisyphus - ultraworker executes the plan locally using the free model `opencode/mimo-v2.5-free` (maximizing token savings)
-6. Gemini reads modified files to verify
-7. You can ask follow-up questions (Gemini remembers everything)
+1. You tell Gemini what you want.
+2. Gemini reads relevant files to understand context.
+3. Gemini creates a SHORT plan (10 lines max) WITH context.
+4. Gemini decides on the path:
+   * **Path A (Simple):** Invokes plain `opencode run -m opencode/mimo-v2.5-free`. Resumes using `opencode run -s <session_id>`.
+   * **Path B (Complex):** Invokes `oh-my-opencode.js run --agent Sisyphus --json`. Resumes using `--session-id <session_id>`.
+5. The executor runs the plan locally using the free model (maximizing token savings).
+6. Gemini reads modified files to verify.
+7. You can ask follow-up questions (Gemini resumes the session ID to save tokens).
 
 ## Token Usage
 
@@ -58,7 +59,7 @@ You ←→ Gemini (Memory + Context) ←→ Sisyphus (Executor) ←→ Your Code
 |----------|-----------------|
 | Full analysis (old) | ~2000-5000 |
 | Relay only | ~50-100 |
-| **Planner with context** | ~150-250 |
+| **Smart Planning + Session ID** | ~100-200 |
 
 ## Plan Format (with Context)
 
