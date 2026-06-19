@@ -94,6 +94,7 @@ You ←→ Gemini (Memory/Context Planner) ←→ Plain OpenCode (Path A) or Sis
 - `planning-template.md` - Quick reference for plan format
 - `context-workflow.md` - Detailed context flow explanation
 - `setup.sh` - Environment verification (optional)
+- `uninstall.sh` - Removes components installed by setup-antigravity-opencode.sh
 - `mcp-bridge-config.json` - MCP Bridge configuration for Path C
 - `setup-mcp-bridge.sh` - Automates bridge installation, config copying, and daemon startup
 
